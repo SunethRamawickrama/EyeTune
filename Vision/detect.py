@@ -179,18 +179,21 @@ with FaceLandmarker.create_from_options(options) as landmarker:
     if brightness < BRIGHTNESS_THRESHOLD:
         cv2.putText(img, "WARNING: Low ambient light!", (10, warning_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        show_notification("Eye Tune Warning","WARNING: Low ambient lighting")
         warning_y -= 30
     
     if distance_cm and distance_cm < DISTANCE_CLOSE_THRESHOLD:
         cv2.putText(img, "WARNING: Too close to screen!", (10, warning_y), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        show_notification("Eye Tune Warning","WARNING: Too close to screen!")
         warning_y -= 30
     
     if direction_stats['continuous_look_time'] > MAX_CONTINUOUS_FOCUS:
         cv2.putText(img, 
-                "⚠️ Time for an eye break! Look away from the screen!", 
+                "Time for an eye break! Look away from the screen!", 
                 (10, warning_y), 
                 cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+        show_notification("Eye Tune Warning", "Time for an eye break! Look away from the screen!")
     warning_y -= 30
     
     cv2.imshow("EyeTune - Enhanced Detection", img)
