@@ -168,49 +168,117 @@ def detect_blink(face_landmarks, img_w, img_h):
         "avg_ear": avg_ear
     }
 
+import color_theme
+last_color_adjust_time = 0
+COLOR_ADJUST_INTERVAL = 30 
+
+# def process_ambient_light(frame):
+#     """
+#     Process ambient light from frame and return brightness value
+#     Also tracks ambient light state changes
+#     """
+#     global last_known_light_state, light_state_changes, dark_environment_start_time
+
+#     global last_color_adjust_time
+#     current_time = time.time()
+
+#     # if current_time - last_color_adjust_time > COLOR_ADJUST_INTERVAL:
+#     #     try:
+#     #         color_theme.auto_adjust(frame)
+#     #         last_color_adjust_time = current_time
+#     #     except Exception as e:
+#     #         print(f"Screen tint adjustment failed: {e}")
+    
+#     try:
+#         # Convert the BGR image to grayscale
+#         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+        
+#         # Calculate average brightness
+#         brightness = np.mean(gray)
+#         current_time = time.time()
+        
+#         # Determine the current state based on brightness
+#         current_state = "light" if brightness >= BRIGHTNESS_THRESHOLD else "dark"
+        
+#         # Track time spent in dark environment
+#         if current_state == "dark":
+#             if dark_environment_start_time is None:
+#                 dark_environment_start_time = current_time
+#         else:  # Reset dark environment timer when it's bright
+#             dark_environment_start_time = None
+        
+#         # Check if the state has changed
+#         if last_known_light_state is None:
+#             # Initialize the last known state
+#             last_known_light_state = current_state
+#             ambient_light_data["timestamp"] = current_time
+#             light_state_changes.append(ambient_light_data.copy())
+#         elif current_state != last_known_light_state:
+#             # State has changed, update the timestamp and state
+#             ambient_light_data["ambient_light"] = current_state
+#             ambient_light_data["timestamp"] = current_time
+#             last_known_light_state = current_state
+#             light_state_changes.append(ambient_light_data.copy())
+        
+#         return float(brightness)
+    
+#     except Exception as e:
+#         print(f"Error processing ambient light: {str(e)}")
+#         return 0.0
+
 def process_ambient_light(frame):
     """
     Process ambient light from frame and return brightness value
-    Also tracks ambient light state changes
+    Also tracks ambient light state changes and adjusts screen tint.
+    Non-blocking for other processes.
     """
     global last_known_light_state, light_state_changes, dark_environment_start_time
-    
+    global last_color_adjust_time
+
+    current_time = time.time()
+
     try:
-        # Convert the BGR image to grayscale
+        # Convert to grayscale and calculate brightness
         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-        # Calculate average brightness
         brightness = np.mean(gray)
-        current_time = time.time()
-        
-        # Determine the current state based on brightness
+
+        # Determine light state
         current_state = "light" if brightness >= BRIGHTNESS_THRESHOLD else "dark"
-        
+
         # Track time spent in dark environment
-        if current_state == "dark":
-            if dark_environment_start_time is None:
-                dark_environment_start_time = current_time
-        else:  # Reset dark environment timer when it's bright
+        if current_state == "dark" and dark_environment_start_time is None:
+            dark_environment_start_time = current_time
+        elif current_state == "light":
             dark_environment_start_time = None
-        
-        # Check if the state has changed
+
+        # Track state changes
         if last_known_light_state is None:
-            # Initialize the last known state
             last_known_light_state = current_state
+            ambient_light_data["ambient_light"] = current_state
             ambient_light_data["timestamp"] = current_time
             light_state_changes.append(ambient_light_data.copy())
         elif current_state != last_known_light_state:
-            # State has changed, update the timestamp and state
             ambient_light_data["ambient_light"] = current_state
             ambient_light_data["timestamp"] = current_time
             last_known_light_state = current_state
             light_state_changes.append(ambient_light_data.copy())
-        
+
+        # --- Screen tint adjustment (non-blocking, infrequent) ---
+        if current_time - last_color_adjust_time > COLOR_ADJUST_INTERVAL:
+            try:
+                # Run in a separate thread to prevent blocking
+                import threading
+                threading.Thread(target=color_theme.auto_adjust, args=(frame,)).start()
+                last_color_adjust_time = current_time
+            except Exception as e:
+                print(f"Screen tint adjustment failed: {e}")
+
         return float(brightness)
-    
+
     except Exception as e:
         print(f"Error processing ambient light: {str(e)}")
         return 0.0
+
 
 def check_distance(frame, face_landmarks):
     """
@@ -398,3 +466,4 @@ def reset_direction_tracking():
     direction_state_start_time = time.time()
     last_direction_change_time = time.time()
     print("Direction tracking reset")
+
