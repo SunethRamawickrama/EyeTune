@@ -50,7 +50,6 @@ def eye(img, all_the_normalized_landmarks, point_list):
     for index, i in enumerate(eye_landmarks):
         pixel_x = int (all_the_normalized_landmarks[i].x * frame_width)
         pixel_y = int (all_the_normalized_landmarks[i].y * frame_height)
-        # print(pixel_x, pixel_y)
         cv2.circle(img, (pixel_x, pixel_y), 1, (255, 255, 0), -1)
         cv2.putText(img, str(index), (pixel_x, pixel_y), cv2.FONT_HERSHEY_COMPLEX, 0.25,  (255, 255, 0), 1, cv2.LINE_AA)
 
@@ -115,6 +114,7 @@ def display_stats(img, blink_stats, ambient_stats, distance_stats, direction_sta
 
 cap = cv2.VideoCapture(0)
 with FaceLandmarker.create_from_options(options) as landmarker:
+   MAX_CONTINUOUS_FOCUS = 60 
    while cap.isOpened():
     ret, img = cap.read()
     if not ret:
@@ -134,7 +134,6 @@ with FaceLandmarker.create_from_options(options) as landmarker:
 
     detection_result = landmarker.detect_for_video(mp_image, timestamp)
 
-    # Process ambient light regardless of face detection
     brightness = process_ambient_light(img)
     
     # Initialize variables
@@ -187,10 +186,12 @@ with FaceLandmarker.create_from_options(options) as landmarker:
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
         warning_y -= 30
     
-    # Look away warning (if looking away for more than 10 seconds)
-    if direction != "center" and direction_stats['total_look_away_time'] > 10:
-        cv2.putText(img, "WARNING: Look away for too long!", (10, warning_y), 
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    if direction_stats['continuous_look_time'] > MAX_CONTINUOUS_FOCUS:
+        cv2.putText(img, 
+                "⚠️ Time for an eye break! Look away from the screen!", 
+                (10, warning_y), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 0, 255), 2)
+    warning_y -= 30
     
     cv2.imshow("EyeTune - Enhanced Detection", img)
     if cv2.waitKey(1) & 0xFF == 27:

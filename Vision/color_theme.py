@@ -35,7 +35,7 @@ def reset_temperature():
 def _set_gamma_windows(temp: int):
     user32 = ctypes.windll.user32
     gdi32 = ctypes.windll.gdi32
-    hdc = user32.GetDC(0)  # <-- GetDC is in user32.dll
+    hdc = user32.GetDC(0)  
     ramp = (ctypes.c_uint16 * 768)()
 
     def clamp(x): return min(65535, max(0, int(x)))
@@ -50,7 +50,7 @@ def _set_gamma_windows(temp: int):
         ramp[i+512] = clamp(b * 65535)
 
     gdi32.SetDeviceGammaRamp(hdc, ramp)
-    user32.ReleaseDC(0, hdc)  # release the device context
+    user32.ReleaseDC(0, hdc) 
 
 def auto_adjust(frame):
     rgb = get_room_color(frame)

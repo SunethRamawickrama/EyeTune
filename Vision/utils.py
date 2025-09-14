@@ -172,60 +172,6 @@ import color_theme
 last_color_adjust_time = 0
 COLOR_ADJUST_INTERVAL = 30 
 
-# def process_ambient_light(frame):
-#     """
-#     Process ambient light from frame and return brightness value
-#     Also tracks ambient light state changes
-#     """
-#     global last_known_light_state, light_state_changes, dark_environment_start_time
-
-#     global last_color_adjust_time
-#     current_time = time.time()
-
-#     # if current_time - last_color_adjust_time > COLOR_ADJUST_INTERVAL:
-#     #     try:
-#     #         color_theme.auto_adjust(frame)
-#     #         last_color_adjust_time = current_time
-#     #     except Exception as e:
-#     #         print(f"Screen tint adjustment failed: {e}")
-    
-#     try:
-#         # Convert the BGR image to grayscale
-#         gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-        
-#         # Calculate average brightness
-#         brightness = np.mean(gray)
-#         current_time = time.time()
-        
-#         # Determine the current state based on brightness
-#         current_state = "light" if brightness >= BRIGHTNESS_THRESHOLD else "dark"
-        
-#         # Track time spent in dark environment
-#         if current_state == "dark":
-#             if dark_environment_start_time is None:
-#                 dark_environment_start_time = current_time
-#         else:  # Reset dark environment timer when it's bright
-#             dark_environment_start_time = None
-        
-#         # Check if the state has changed
-#         if last_known_light_state is None:
-#             # Initialize the last known state
-#             last_known_light_state = current_state
-#             ambient_light_data["timestamp"] = current_time
-#             light_state_changes.append(ambient_light_data.copy())
-#         elif current_state != last_known_light_state:
-#             # State has changed, update the timestamp and state
-#             ambient_light_data["ambient_light"] = current_state
-#             ambient_light_data["timestamp"] = current_time
-#             last_known_light_state = current_state
-#             light_state_changes.append(ambient_light_data.copy())
-        
-#         return float(brightness)
-    
-#     except Exception as e:
-#         print(f"Error processing ambient light: {str(e)}")
-#         return 0.0
-
 def process_ambient_light(frame):
     """
     Process ambient light from frame and return brightness value
@@ -263,7 +209,7 @@ def process_ambient_light(frame):
             last_known_light_state = current_state
             light_state_changes.append(ambient_light_data.copy())
 
-        # --- Screen tint adjustment (non-blocking, infrequent) ---
+        
         if current_time - last_color_adjust_time > COLOR_ADJUST_INTERVAL:
             try:
                 # Run in a separate thread to prevent blocking
@@ -371,7 +317,7 @@ def detect_eye_direction(face_landmarks, img_w, img_h):
         return "unknown"
 
     # MediaPipe Face Landmarker indices for eye landmarks
-    # Using eye corner landmarks for direction detection (more reliable than pupil detection)
+    # Using eye corner landmarks for direction detection
     left_eye_landmarks = [33, 133, 159, 145, 144, 153]  # Left eye landmarks
     right_eye_landmarks = [362, 263, 386, 374, 380, 373]  # Right eye landmarks
     
@@ -439,16 +385,19 @@ def detect_eye_direction(face_landmarks, img_w, img_h):
 def get_direction_stats():
     """Get current direction statistics"""
     total_look_away_time = calculate_look_away_time(direction_changes)
+    continuous_look_time = calculate_continuous_look_time(direction_changes)
     
     # Print periodic summary (every 10 direction changes)
     if len(direction_changes) > 0 and len(direction_changes) % 10 == 0:
-        print(f"Direction Summary - Changes: {len(direction_changes)}, Look Away Time: {total_look_away_time:.1f}s")
+        print(f"Direction Summary - Changes: {len(direction_changes)}, Look Away Time: {total_look_away_time:.1f}s, Continuous Look: {continuous_look_time:.1f}s")
     
     return {
         "current_direction": last_known_direction,
         "direction_changes": direction_changes,
-        "total_look_away_time": total_look_away_time
+        "total_look_away_time": total_look_away_time,
+        "continuous_look_time": continuous_look_time
     }
+
 
 def calculate_look_away_time(direction_changes):
     """Calculate total time spent looking away from center"""
@@ -466,4 +415,28 @@ def reset_direction_tracking():
     direction_state_start_time = time.time()
     last_direction_change_time = time.time()
     print("Direction tracking reset")
+
+def calculate_continuous_look_time(direction_changes):
+    """
+    Returns time in seconds that the user has continuously been looking at the screen.
+    direction_changes: list of dicts with 'looking_away' (0=center,1=away) and 'timestamp'
+    """
+    if not direction_changes:
+        return 0
+
+    current_time = time.time()
+    
+    # Find the last timestamp when user looked away
+    last_look_away_time = None
+    for entry in reversed(direction_changes):
+        if entry["looking_away"] == 1:
+            last_look_away_time = entry["timestamp"]
+            break
+    
+    if last_look_away_time is None:
+        # User has never looked away
+        last_look_away_time = direction_changes[0]["timestamp"]
+
+    return current_time - last_look_away_time
+
 

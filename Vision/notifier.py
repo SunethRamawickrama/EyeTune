@@ -10,10 +10,8 @@ def show_notification(title: str, message: str, timeout: int = 3):
     """
     system = platform.system()
 
-    # Plyer handles Windows, macOS, and Linux already.
-    # But we can adjust defaults per OS if needed.
     notification.notify(
         title=title,
         message=message,
-        timeout=timeout  # seconds
+        timeout=timeout  
     )
