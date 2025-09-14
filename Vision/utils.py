@@ -11,10 +11,10 @@ ZOOM_OUT_THRESHOLD = 0.25
 EAR_THRESHOLD = 0.3  # For blink detection (increased for better sensitivity)
 
 # Ambient light thresholds
-BRIGHTNESS_THRESHOLD = 70  # Below this is considered dark
+BRIGHTNESS_THRESHOLD = 90  # Below this is considered dark
 
 # Distance thresholds (in cm)
-DISTANCE_CLOSE_THRESHOLD = 20
+DISTANCE_CLOSE_THRESHOLD = 35
 DISTANCE_FAR_THRESHOLD = 40
 
 # Distance calculation constants
@@ -49,13 +49,32 @@ def core(ear):
     """Original zoom functionality based on EAR"""
     print(f"EAR: {ear}")
     global adjusted
-    
-    if (ear < ZOOM_IN_THRESHOLD and not adjusted):
-        screen_controller.scale()
-        adjusted = True
-    elif (ear > ZOOM_OUT_THRESHOLD and adjusted):
-        screen_controller.reset()
-        adjusted = False
+    global squint_start_time, squint_hold_start
+    hold_duration = 30  # seconds (how long to keep scaled)
+    squint_required_duration = 2  # seconds (how long EAR must be low)
+
+    if 'squint_start_time' not in globals():
+        squint_start_time = None
+    if 'squint_hold_start' not in globals():
+        squint_hold_start = None
+
+    if ear < ZOOM_IN_THRESHOLD:
+        if squint_start_time is None:
+            squint_start_time = time.time()
+        elif not adjusted and (time.time() - squint_start_time >= squint_required_duration):
+            screen_controller.scale()
+            adjusted = True
+            squint_hold_start = time.time()
+    else:
+        squint_start_time = None
+
+    if adjusted:
+        # Hold scaled state for at least hold_duration
+        if squint_hold_start is not None and (time.time() - squint_hold_start >= hold_duration):
+            if ear > ZOOM_OUT_THRESHOLD:
+                screen_controller.reset()
+                adjusted = False
+                squint_hold_start = None
 
 def detect_blink(face_landmarks, img_w, img_h):
     """

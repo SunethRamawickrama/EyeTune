@@ -9,6 +9,7 @@ from utils import (
     get_blink_stats, get_ambient_light_stats, get_distance_stats, get_direction_stats,
     BRIGHTNESS_THRESHOLD, DISTANCE_CLOSE_THRESHOLD
 )
+from notifier import show_notification
 
 # Initializing mediapipe options
 BaseOptions = mp.tasks.BaseOptions
@@ -112,7 +113,7 @@ def display_stats(img, blink_stats, ambient_stats, distance_stats, direction_sta
         cv2.putText(img, "Distance: N/A", (10, y_offset), 
                     cv2.FONT_HERSHEY_SIMPLEX, 0.6, (255, 0, 255), 2)
 
-cap = cv2.VideoCapture(1)
+cap = cv2.VideoCapture(0)
 with FaceLandmarker.create_from_options(options) as landmarker:
    while cap.isOpened():
     ret, img = cap.read()
