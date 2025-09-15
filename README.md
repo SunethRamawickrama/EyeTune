@@ -1,5 +1,7 @@
 # EyeTune
 
+**HopHacks 2025 - Healthcare Track: Best Healthcare Hack by Commure, 1st place**
+
 EyeTune is a computer vision application that monitors eye health and screen usage patterns using real-time facial landmark detection.
 
 ## Features
