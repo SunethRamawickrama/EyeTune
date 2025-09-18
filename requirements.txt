@@ -3,3 +3,4 @@ mediapipe
 opencv-python
 pyautogui
 pywinauto
+plyer
