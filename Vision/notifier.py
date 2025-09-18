@@ -9,9 +9,12 @@ def show_notification(title: str, message: str, timeout: int = 3):
     - Linux: uses notify-send (desktop environment must support it)
     """
     system = platform.system()
-
-    notification.notify(
-        title=title,
-        message=message,
-        timeout=timeout  
-    )
+    
+    try:
+        notification.notify(
+            title=title,
+            message=message,
+            timeout=timeout  
+        )
+    except Exception as e:
+        print(f"Notification failed: {e}")
